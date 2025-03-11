@@ -35,7 +35,7 @@ export default function Results({ data, tariffs }: ResultsProps) {
       daily: dailyCost,
       monthly: dailyCost * 30,
       yearly: dailyCost * 365,
-      kwhPerDay: dailyPHCNKwh
+      kwhPerDay: dailyPHCNKwh || 0
     };
   };
 
@@ -147,7 +147,7 @@ export default function Results({ data, tariffs }: ResultsProps) {
             <p className="text-sm text-blue-600 dark:text-blue-300">Daily</p>
             <p className="text-xl font-bold">{formatCurrency(phcnCosts.daily)}</p>
             <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-              {phcnCosts.kwhPerDay.toFixed(1)} kWh/day
+              {(phcnCosts.kwhPerDay ?? 0).toFixed(1)} kWh/day
             </p>
           </div>
           <div>
