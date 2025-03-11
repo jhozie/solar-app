@@ -3,10 +3,11 @@ import { CalculatorData } from './Calculator';
 type GeneratorDetailsProps = {
   kva: number;
   dieselPrice: number;
+  maintenanceCost: number;
   onChange: (updates: Partial<CalculatorData>) => void;
 };
 
-export default function GeneratorDetails({ kva, dieselPrice, onChange }: GeneratorDetailsProps) {
+export default function GeneratorDetails({ kva, dieselPrice, maintenanceCost, onChange }: GeneratorDetailsProps) {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
@@ -37,6 +38,19 @@ export default function GeneratorDetails({ kva, dieselPrice, onChange }: Generat
             value={dieselPrice}
             onChange={(e) => onChange({ dieselPricePerLiter: Number(e.target.value) })}
             min="1"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Yearly Maintenance Cost (₦)
+          </label>
+          <input
+            type="number"
+            value={maintenanceCost}
+            onChange={(e) => onChange({ maintenanceCostYearly: Number(e.target.value) })}
+            min="0"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
         </div>
