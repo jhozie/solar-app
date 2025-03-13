@@ -106,7 +106,6 @@ export default function Results({ data, tariffs }: ResultsProps) {
     };
 
     const systemCost = SOLAR_PACKAGES[solarPackage].cost;
-    const requiredKw = data.avgDailyConsumption * 1.3; // 30% overhead for inefficiencies
     const yearlyMaintenance = systemCost * 0.01;
     const batteryReplacementYearly = (systemCost * 0.3) / 7;
     const solarYearly = yearlyMaintenance + batteryReplacementYearly;

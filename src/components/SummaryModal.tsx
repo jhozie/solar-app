@@ -43,15 +43,6 @@ const SOLAR_PACKAGES = {
   }
 };
 
-// Function to get nearest KVA fuel consumption
-const getNearestFuelConsumption = (kva: number): number => {
-  const sizes = Object.keys(GENERATOR_FUEL_CONSUMPTION).map(Number);
-  const nearest = sizes.reduce((prev, curr) => {
-    return Math.abs(curr - kva) < Math.abs(prev - kva) ? curr : prev;
-  });
-  return GENERATOR_FUEL_CONSUMPTION[nearest];
-};
-
 export default function SummaryModal({ isOpen, onClose, data, tariffs }: SummaryModalProps) {
   if (!isOpen) return null;
 
