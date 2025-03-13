@@ -12,6 +12,46 @@ type SummaryModalProps = {
   }>;
 };
 
+// Update the generator fuel consumption lookup table with full load values
+const GENERATOR_FUEL_CONSUMPTION: Record<number, number> = {
+  3: 1.2,    // 3kVA = 1.2L/hr at full load
+  4: 1.6,    // 4kVA = 1.6L/hr at full load
+  5: 2.0,    // 5kVA = 2.0L/hr at full load
+  6: 2.4,    // 6kVA = 2.4L/hr at full load
+  7: 2.8,    // 7kVA = 2.8L/hr at full load
+  8: 3.2,    // 8kVA = 3.2L/hr at full load
+  9: 3.6,    // 9kVA = 3.6L/hr at full load
+  10: 4.0    // 10kVA = 4.0L/hr at full load
+};
+
+// Update solar packages
+const SOLAR_PACKAGES = {
+  'SMALL': {
+    capacity: 3,
+    cost: 2_000_000, // ₦2M
+    description: 'Suitable for 3-4 KVA generators'
+  },
+  'MEDIUM': {
+    capacity: 5,
+    cost: 2_750_000, // ₦2.75M
+    description: 'Suitable for 5-7 KVA generators'
+  },
+  'LARGE': {
+    capacity: 10,
+    cost: 5_700_000, // ₦5.7M
+    description: 'Suitable for 8-10 KVA generators'
+  }
+};
+
+// Function to get nearest KVA fuel consumption
+const getNearestFuelConsumption = (kva: number): number => {
+  const sizes = Object.keys(GENERATOR_FUEL_CONSUMPTION).map(Number);
+  const nearest = sizes.reduce((prev, curr) => {
+    return Math.abs(curr - kva) < Math.abs(prev - kva) ? curr : prev;
+  });
+  return GENERATOR_FUEL_CONSUMPTION[nearest];
+};
+
 export default function SummaryModal({ isOpen, onClose, data, tariffs }: SummaryModalProps) {
   if (!isOpen) return null;
 
@@ -24,45 +64,61 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
     }).format(amount);
   };
 
-  // Calculate annual costs
+  // Update the calculations
   const calculateAnnualCosts = () => {
     const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
     const genHours = 24 - avgPHCNHours;
     
     // PHCN Details
-    const dailyPHCNKwh = (data.avgDailyConsumption * avgPHCNHours) / 24;
+    const dailyPHCNKwh = data.avgDailyConsumption * (avgPHCNHours / 24);
     const phcnYearly = dailyPHCNKwh * (data.powerBand ? tariffs[data.powerBand].tariff : 0) * 365;
     
     // Generator Details
-    const litresPerHour = (data.generatorKVA * 0.7 * 0.21);
-    const dailyDieselLitres = genHours * litresPerHour;
-    const dailyDieselCost = dailyDieselLitres * data.dieselPricePerLiter;
+    const powerFactor = 0.8;
+    const genKW = data.generatorKVA * powerFactor;
+    const dailyGenKwh = genKW * genHours;
+    const litresPerHour = GENERATOR_FUEL_CONSUMPTION[data.generatorKVA] || 0;
+    const dailyDieselCost = genHours * litresPerHour * data.dieselPricePerLiter;
     const yearlyDieselCost = dailyDieselCost * 365;
     const genYearly = yearlyDieselCost + data.maintenanceCostYearly;
     
     // Solar Details
-    const requiredKw = data.avgDailyConsumption * 1.3;
-    const systemCost = requiredKw * 1000 * 400;
+    let solarPackage = 'MEDIUM';
+    if (data.generatorKVA <= 4) {
+      solarPackage = 'SMALL';
+    } else if (data.generatorKVA > 7) {
+      solarPackage = 'LARGE';
+    }
+
+    const systemCost = SOLAR_PACKAGES[solarPackage].cost;
     const yearlyMaintenance = systemCost * 0.01;
     const batteryReplacementYearly = (systemCost * 0.3) / 7;
     const solarYearly = yearlyMaintenance + batteryReplacementYearly;
 
-    return { 
-      phcnYearly, 
-      genYearly, 
-      solarYearly, 
+    // Calculate savings and payback
+    const totalCurrentCost = phcnYearly + genYearly;
+    const annualSavings = totalCurrentCost - solarYearly;
+    const paybackPeriod = systemCost / annualSavings;
+
+    return {
+      phcnYearly,
+      genYearly,
+      solarYearly,
       systemCost,
-      dailyDieselLitres,
+      dailyDieselLitres: litresPerHour * genHours,
       yearlyDieselCost,
       yearlyMaintenance,
-      batteryReplacementYearly
+      batteryReplacementYearly,
+      paybackPeriod,
+      annualSavings,
+      totalCurrentCost,
+      phcnDailyKwh: dailyPHCNKwh,
+      genDailyKwh: dailyGenKwh
     };
   };
 
   const costs = calculateAnnualCosts();
-  const totalCurrentCost = costs.phcnYearly + costs.genYearly;
-  const annualSavings = totalCurrentCost - costs.solarYearly;
-  const paybackPeriod = costs.systemCost / annualSavings;
+  const totalLifetimeSavings = (costs.annualSavings * 25) - costs.systemCost;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -98,7 +154,7 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
                 </div>
                 <div className="flex justify-between text-lg font-bold pt-2 border-t">
                   <span>Total Current Cost:</span>
-                  <span>{formatCurrency(totalCurrentCost)}</span>
+                  <span>{formatCurrency(costs.totalCurrentCost)}</span>
                 </div>
               </div>
             </div>
@@ -117,7 +173,7 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
                 </div>
                 <div className="flex justify-between text-lg font-bold text-green-600 dark:text-green-400 pt-2 border-t">
                   <span>Annual Savings:</span>
-                  <span>{formatCurrency(annualSavings)}</span>
+                  <span>{formatCurrency(costs.annualSavings)}</span>
                 </div>
               </div>
             </div>
@@ -128,7 +184,7 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Payback Period:</span>
-                  <span className="font-medium">{paybackPeriod.toFixed(1)} years</span>
+                  <span className="font-medium">{costs.paybackPeriod.toFixed(1)} years</span>
                 </div>
                 <div className="flex justify-between">
                   <span>System Lifespan:</span>
@@ -137,7 +193,7 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
                 <div className="mt-2 text-sm text-blue-600 dark:text-blue-300">
                   Total savings over system lifespan:{' '}
                   <span className="font-bold">
-                    {formatCurrency(annualSavings * 25)}
+                    {formatCurrency(totalLifetimeSavings)}
                   </span>
                 </div>
               </div>

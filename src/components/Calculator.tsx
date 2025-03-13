@@ -7,31 +7,31 @@ import GeneratorDetails from './GeneratorDetails';
 import PHCNDetails from './PHCNDetails';
 import Results from './Results';
 
-// Updated PHCN band information with accurate 2024 Nigerian tariffs
+// Updated PHCN band information with accurate tariffs from image
 const BAND_INFO = {
   'A': {
     minHours: 20,
     maxHours: 24,
-    tariff: 225, // ₦/kWh - Premium service areas
-    avgKwhPerDay: 32, // Average daily consumption for premium areas
+    tariff: 225, // ₦225/kWh for all categories (NMD, MD1, MD2)
+    avgKwhPerDay: 32
   },
   'B': {
     minHours: 16,
-    maxHours: 20,
-    tariff: 210, // ₦/kWh - High-density commercial/residential areas
-    avgKwhPerDay: 24, // Average daily consumption
+    maxHours: 24,
+    tariff: 64.07, // ₦64.07/kWh for MD1 and MD2, ₦61 for NMD
+    avgKwhPerDay: 24
   },
   'C': {
     minHours: 12,
-    maxHours: 16,
-    tariff: 200, // ₦/kWh - Medium-density residential areas
-    avgKwhPerDay: 16, // Average daily consumption
+    maxHours: 24,
+    tariff: 52.05, // ₦52.05/kWh for MD1 and MD2, ₦48.53 for NMD
+    avgKwhPerDay: 16
   },
   'D': {
     minHours: 8,
-    maxHours: 12,
-    tariff: 188, // ₦/kWh - Low-density/rural areas
-    avgKwhPerDay: 12, // Average daily consumption
+    maxHours: 24,
+    tariff: 43.27, // ₦43.27/kWh for MD1 and MD2, ₦32.48 for NMD
+    avgKwhPerDay: 12
   }
 } as const;
 
@@ -49,12 +49,12 @@ export default function Calculator() {
   const [currentStep, setCurrentStep] = useState(0);
   const [data, setData] = useState<CalculatorData>({
     powerBand: null,
-    generatorKVA: 5,
+    generatorKVA: 3,
     phcnHoursMin: 6,
     phcnHoursMax: 10,
-    dieselPricePerLiter: 1200, // Current diesel price 2024
+    dieselPricePerLiter: 1200,
     maintenanceCostYearly: 100000,
-    avgDailyConsumption: 20, // Default average daily consumption in kWh
+    avgDailyConsumption: 20,
   });
 
   // Update PHCN hours and consumption when band changes
@@ -71,7 +71,17 @@ export default function Calculator() {
   }, [data.powerBand]);
 
   const updateData = (updates: Partial<CalculatorData>) => {
-    setData(prev => ({ ...prev, ...updates }));
+    setData(prev => {
+      const newData = { ...prev, ...updates };
+      
+      // Remove the auto-correction for generatorKVA
+      if ('generatorKVA' in updates) {
+        // Only round the number, don't clamp it
+        newData.generatorKVA = Number(newData.generatorKVA);
+      }
+      
+      return newData;
+    });
   };
 
   const steps = [
@@ -125,7 +135,7 @@ export default function Calculator() {
       case 0:
         return data.powerBand !== null;
       case 1:
-        return data.generatorKVA > 0 && data.dieselPricePerLiter > 0;
+        return data.generatorKVA >= 3 && data.generatorKVA <= 10 && data.dieselPricePerLiter > 0;
       case 2:
         return data.phcnHoursMin >= 0 && data.phcnHoursMax <= 24;
       default:

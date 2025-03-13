@@ -10,6 +10,18 @@ type ResultsProps = {
   }>;
 };
 
+// Update the generator fuel consumption lookup table with full load values from the table
+const GENERATOR_FUEL_CONSUMPTION: Record<number, number> = {
+  3: 1.2,    // 3kVA = 1.2L/hr at full load
+  4: 1.6,    // 4kVA = 1.6L/hr at full load
+  5: 2.0,    // 5kVA = 2.0L/hr at full load
+  6: 2.4,    // 6kVA = 2.4L/hr at full load
+  7: 2.8,    // 7kVA = 2.8L/hr at full load
+  8: 3.2,    // 8kVA = 3.2L/hr at full load
+  9: 3.6,    // 9kVA = 3.6L/hr at full load
+  10: 4.0    // 10kVA = 4.0L/hr at full load
+};
+
 export default function Results({ data, tariffs }: ResultsProps) {
   // Calculate power distribution hours
   const getPowerDistribution = () => {
@@ -24,18 +36,20 @@ export default function Results({ data, tariffs }: ResultsProps) {
 
   // PHCN Cost Calculation
   const calculatePHCNCost = () => {
-    if (!data.powerBand) return { daily: 0, monthly: 0, yearly: 0 };
+    if (!data.powerBand) return { daily: 0, monthly: 0, yearly: 0, kwhPerDay: 0 };
     
     const bandInfo = tariffs[data.powerBand];
     const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
-    const dailyPHCNKwh = (data.avgDailyConsumption * avgPHCNHours) / 24;
-    const dailyCost = dailyPHCNKwh * bandInfo.tariff;
+    
+    // Calculate actual kWh consumption during PHCN hours
+    const dailyKwh = data.avgDailyConsumption * (avgPHCNHours / 24);
+    const dailyCost = dailyKwh * bandInfo.tariff;
 
     return {
       daily: dailyCost,
       monthly: dailyCost * 30,
       yearly: dailyCost * 365,
-      kwhPerDay: dailyPHCNKwh || 0
+      kwhPerDay: dailyKwh
     };
   };
 
@@ -44,13 +58,16 @@ export default function Results({ data, tariffs }: ResultsProps) {
     const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
     const genHours = 24 - avgPHCNHours;
     
-    // More accurate diesel consumption calculation
-    const loadFactor = 0.7; // 70% average load
-    const litresPerHour = (data.generatorKVA * loadFactor * 0.21); // 0.21L/kVA is typical for modern generators
+    // Calculate kWh based on generator KVA
+    const powerFactor = 0.8; // Standard power factor
+    const genKW = data.generatorKVA * powerFactor; // Convert KVA to kW
+    const dailyKwh = genKW * genHours; // kW * hours = kWh
+    
+    // Use the lookup table for full load consumption
+    const litresPerHour = GENERATOR_FUEL_CONSUMPTION[data.generatorKVA] || 0;
     const dailyDieselCost = genHours * litresPerHour * data.dieselPricePerLiter;
     
     const dailyMaintenance = data.maintenanceCostYearly / 365;
-    const dailyKwh = (data.avgDailyConsumption * genHours) / 24;
     
     return {
       daily: dailyDieselCost + dailyMaintenance,
@@ -62,25 +79,50 @@ export default function Results({ data, tariffs }: ResultsProps) {
 
   // Solar System Cost Calculation
   const calculateSolarCost = () => {
-    // Updated solar system costs in Nigeria (2024)
+    // Choose appropriate package based on generator size
+    let solarPackage = 'MEDIUM'; // 5kW system
+    if (data.generatorKVA <= 4) {
+      solarPackage = 'SMALL';  // 3kW for 3-4 KVA generators
+    } else if (data.generatorKVA > 7) {
+      solarPackage = 'LARGE';  // 10kW for 8-10 KVA generators
+    }
+
+    const SOLAR_PACKAGES = {
+      'SMALL': {
+        capacity: 3,
+        cost: 2_000_000, // ₦2M
+        description: 'Suitable for 3-4 KVA generators'
+      },
+      'MEDIUM': {
+        capacity: 5,
+        cost: 2_750_000, // ₦2.75M
+        description: 'Suitable for 5-7 KVA generators'
+      },
+      'LARGE': {
+        capacity: 10,
+        cost: 5_700_000, // ₦5.7M
+        description: 'Suitable for 8-10 KVA generators'
+      }
+    };
+
+    const systemCost = SOLAR_PACKAGES[solarPackage].cost;
     const requiredKw = data.avgDailyConsumption * 1.3; // 30% overhead for inefficiencies
-    const systemCost = requiredKw * 1000 * 400; // ₦400 per watt installed (panels, batteries, inverter)
-    const yearlyMaintenance = systemCost * 0.01; // 1% of system cost
-    const systemLifespan = 25; // years
+    const yearlyMaintenance = systemCost * 0.01;
+    const batteryReplacementYearly = (systemCost * 0.3) / 7;
+    const solarYearly = yearlyMaintenance + batteryReplacementYearly;
     
-    // Daily cost including replacement of batteries every 7 years
-    const batteryReplacementCost = systemCost * 0.3; // 30% of system cost
-    const totalLifetimeCost = systemCost + (yearlyMaintenance * systemLifespan) + 
-                             (batteryReplacementCost * Math.floor(systemLifespan / 7));
-    
-    const dailyCost = totalLifetimeCost / (systemLifespan * 365);
-    
+    // Calculate annual savings and payback period
+    const currentAnnualCost = phcnCosts.yearly + generatorCosts.yearly;
+    const annualSavings = currentAnnualCost - solarYearly;
+    const paybackPeriod = systemCost / annualSavings;
+
     return {
-      daily: dailyCost,
-      monthly: dailyCost * 30,
-      yearly: dailyCost * 365,
+      daily: solarYearly / 365,
+      monthly: solarYearly / 12,
+      yearly: solarYearly,
       systemCost: systemCost,
-      kwhPerDay: data.avgDailyConsumption
+      kwhPerDay: data.avgDailyConsumption,
+      paybackPeriod: paybackPeriod
     };
   };
 
@@ -185,7 +227,7 @@ export default function Results({ data, tariffs }: ResultsProps) {
         </div>
         <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
           <p className="text-sm text-red-600 dark:text-red-300">
-            Diesel Consumption: {(data.generatorKVA * 0.7 * 0.21).toFixed(1)} L/hour
+            Diesel Consumption: {GENERATOR_FUEL_CONSUMPTION[data.generatorKVA]?.toFixed(1) || 0} L/hour at full load
           </p>
         </div>
       </div>
@@ -219,7 +261,7 @@ export default function Results({ data, tariffs }: ResultsProps) {
             • Minimal maintenance costs<br />
             • No fuel costs<br />
             • Environmental benefits<br />
-            • Return on investment in ~3-5 years
+            • Return on investment in {solarCosts.paybackPeriod.toFixed(1)} years
           </p>
         </div>
       </div>
