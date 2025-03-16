@@ -7,42 +7,49 @@ import GeneratorDetails from './GeneratorDetails';
 import PHCNDetails from './PHCNDetails';
 import Results from './Results';
 
-// Updated PHCN band information with accurate tariffs from image
+// Updated PHCN band information with accurate 2024 tariffs
 const BAND_INFO = {
   'A': {
     minHours: 20,
     maxHours: 24,
-    tariff: 225, // ₦225/kWh for all categories (NMD, MD1, MD2)
+    tariff: 209.50, // Updated from 225 to 209.50 ₦/kWh
     avgKwhPerDay: 32
   },
   'B': {
     minHours: 16,
     maxHours: 24,
-    tariff: 64.07, // ₦64.07/kWh for MD1 and MD2, ₦61 for NMD
+    tariff: 64.07, // MD rate (can also use 61.00 for Non-MD)
     avgKwhPerDay: 24
   },
   'C': {
     minHours: 12,
     maxHours: 24,
-    tariff: 52.05, // ₦52.05/kWh for MD1 and MD2, ₦48.53 for NMD
+    tariff: 52.05, // MD rate (can also use 48.53 for Non-MD)
     avgKwhPerDay: 16
   },
   'D': {
     minHours: 8,
     maxHours: 24,
-    tariff: 43.27, // ₦43.27/kWh for MD1 and MD2, ₦32.48 for NMD
+    tariff: 43.27, // MD rate (can also use 32.48 for Non-MD)
     avgKwhPerDay: 12
+  },
+  'E': {  // Adding Band E
+    minHours: 4,
+    maxHours: 24,
+    tariff: 43.27, // MD rate (can also use 32.44 for Non-MD)
+    avgKwhPerDay: 8
   }
 } as const;
 
 export type CalculatorData = {
-  powerBand: 'A' | 'B' | 'C' | 'D' | null;
+  powerBand: 'A' | 'B' | 'C' | 'D' | 'E' | null;
   generatorKVA: number;
   phcnHoursMin: number;
   phcnHoursMax: number;
   dieselPricePerLiter: number;
   maintenanceCostYearly: number;
   avgDailyConsumption: number;
+  generatorHours: number[];
 };
 
 export default function Calculator() {
@@ -55,6 +62,7 @@ export default function Calculator() {
     dieselPricePerLiter: 1200,
     maintenanceCostYearly: 100000,
     avgDailyConsumption: 20,
+    generatorHours: Array(7).fill(4), // Initialize with 4 hours for each day
   });
 
   // Update PHCN hours and consumption when band changes
@@ -115,6 +123,7 @@ export default function Calculator() {
         <PHCNDetails 
           hoursMin={data.phcnHoursMin}
           hoursMax={data.phcnHoursMax}
+          generatorHours={data.generatorHours}
           onChange={(updates) => updateData(updates)}
           selectedBand={data.powerBand}
           bandInfo={BAND_INFO}
@@ -136,8 +145,14 @@ export default function Calculator() {
         return data.powerBand !== null;
       case 1:
         return data.generatorKVA >= 3 && data.generatorKVA <= 10 && data.dieselPricePerLiter > 0;
-      case 2:
-        return data.phcnHoursMin >= 0 && data.phcnHoursMax <= 24;
+      case 2: {
+        const avgPHCN = (data.phcnHoursMin + data.phcnHoursMax) / 2;
+        const avgGenerator = data.generatorHours.reduce((sum, h) => sum + h, 0) / 7;
+        return data.phcnHoursMin >= 0 && 
+               data.phcnHoursMax <= 24 && 
+               data.generatorHours.length === 7 &&
+               (avgPHCN + avgGenerator) <= 24;
+      }
       default:
         return true;
     }

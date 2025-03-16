@@ -10,6 +10,8 @@ type ResultsProps = {
   }>;
 };
 
+type SolarPackageType = 'SMALL' | 'MEDIUM' | 'LARGE';
+
 // Update the generator fuel consumption lookup table with full load values from the table
 const GENERATOR_FUEL_CONSUMPTION: Record<number, number> = {
   3: 1.2,    // 3kVA = 1.2L/hr at full load
@@ -25,12 +27,14 @@ const GENERATOR_FUEL_CONSUMPTION: Record<number, number> = {
 export default function Results({ data, tariffs }: ResultsProps) {
   // Calculate power distribution hours
   const getPowerDistribution = () => {
-    if (!data.powerBand) return { phcn: 0, generator: 0 };
+    if (!data.powerBand) return { phcn: 0, generator: 0, solar: 0 };
     const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
-    const genHours = 24 - avgPHCNHours;
+    const avgGeneratorHours = data.generatorHours.reduce((sum, h) => sum + h, 0) / 7;
+    // Solar will cover generator hours, but PHCN remains unchanged
     return {
       phcn: avgPHCNHours,
-      generator: genHours
+      generator: avgGeneratorHours,
+      solar: avgGeneratorHours // Solar replaces generator hours
     };
   };
 
@@ -41,8 +45,9 @@ export default function Results({ data, tariffs }: ResultsProps) {
     const bandInfo = tariffs[data.powerBand];
     const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
     
-    // Calculate actual kWh consumption during PHCN hours
-    const dailyKwh = data.avgDailyConsumption * (avgPHCNHours / 24);
+    // Calculate kWh consumption during PHCN hours
+    // Use the actual daily consumption rate from the band
+    const dailyKwh = bandInfo.avgKwhPerDay;
     const dailyCost = dailyKwh * bandInfo.tariff;
 
     return {
@@ -53,20 +58,13 @@ export default function Results({ data, tariffs }: ResultsProps) {
     };
   };
 
-  // Generator Cost Calculation
+  // Generator Cost Calculation (current situation without solar)
   const calculateGeneratorCost = () => {
-    const avgPHCNHours = (data.phcnHoursMin + data.phcnHoursMax) / 2;
-    const genHours = 24 - avgPHCNHours;
+    const avgGeneratorHours = data.generatorHours.reduce((sum, h) => sum + h, 0) / 7;
+    const dailyKwh = (data.avgDailyConsumption * avgGeneratorHours) / 24;
     
-    // Calculate kWh based on generator KVA
-    const powerFactor = 0.8; // Standard power factor
-    const genKW = data.generatorKVA * powerFactor; // Convert KVA to kW
-    const dailyKwh = genKW * genHours; // kW * hours = kWh
-    
-    // Use the lookup table for full load consumption
     const litresPerHour = GENERATOR_FUEL_CONSUMPTION[data.generatorKVA] || 0;
-    const dailyDieselCost = genHours * litresPerHour * data.dieselPricePerLiter;
-    
+    const dailyDieselCost = avgGeneratorHours * litresPerHour * data.dieselPricePerLiter;
     const dailyMaintenance = data.maintenanceCostYearly / 365;
     
     return {
@@ -77,30 +75,33 @@ export default function Results({ data, tariffs }: ResultsProps) {
     };
   };
 
-  // Solar System Cost Calculation
+  // Solar System Cost Calculation (to replace generator usage)
   const calculateSolarCost = () => {
-    // Choose appropriate package based on generator size
-    let solarPackage = 'MEDIUM'; // 5kW system
+    const avgGeneratorHours = data.generatorHours.reduce((sum, h) => sum + h, 0) / 7;
+    const dailyKwh = (data.avgDailyConsumption * avgGeneratorHours) / 24;
+    
+    // Size solar system based on generator KVA
+    let solarPackage: SolarPackageType = 'MEDIUM';
     if (data.generatorKVA <= 4) {
-      solarPackage = 'SMALL';  // 3kW for 3-4 KVA generators
-    } else if (data.generatorKVA > 7) {
-      solarPackage = 'LARGE';  // 10kW for 8-10 KVA generators
+      solarPackage = 'SMALL';     // 3kW for 3-4 KVA generators
+    } else if (data.generatorKVA >= 8) {
+      solarPackage = 'LARGE';     // 10kW for 8-10 KVA generators
     }
 
     const SOLAR_PACKAGES = {
       'SMALL': {
-        capacity: 3,
-        cost: 2_000_000, // ₦2M
+        capacity: 3,              // 3kW system
+        cost: 2_000_000,         // ₦2M initial cost
         description: 'Suitable for 3-4 KVA generators'
       },
       'MEDIUM': {
-        capacity: 5,
-        cost: 2_750_000, // ₦2.75M
+        capacity: 5,              // 5kW system
+        cost: 2_750_000,         // ₦2.75M initial cost
         description: 'Suitable for 5-7 KVA generators'
       },
       'LARGE': {
-        capacity: 10,
-        cost: 5_700_000, // ₦5.7M
+        capacity: 10,             // 10kW system
+        cost: 5_700_000,         // ₦5.7M initial cost
         description: 'Suitable for 8-10 KVA generators'
       }
     };
@@ -109,10 +110,10 @@ export default function Results({ data, tariffs }: ResultsProps) {
     const yearlyMaintenance = systemCost * 0.01;
     const batteryReplacementYearly = (systemCost * 0.3) / 7;
     const solarYearly = yearlyMaintenance + batteryReplacementYearly;
-    
-    // Calculate annual savings and payback period
-    const currentAnnualCost = phcnCosts.yearly + generatorCosts.yearly;
-    const annualSavings = currentAnnualCost - solarYearly;
+
+    // Calculate savings compared to generator only
+    const generatorCosts = calculateGeneratorCost();
+    const annualSavings = generatorCosts.yearly - solarYearly;
     const paybackPeriod = systemCost / annualSavings;
 
     return {
@@ -120,8 +121,9 @@ export default function Results({ data, tariffs }: ResultsProps) {
       monthly: solarYearly / 12,
       yearly: solarYearly,
       systemCost: systemCost,
-      kwhPerDay: data.avgDailyConsumption,
-      paybackPeriod: paybackPeriod
+      kwhPerDay: dailyKwh,
+      paybackPeriod: paybackPeriod,
+      package: SOLAR_PACKAGES[solarPackage]
     };
   };
 
@@ -238,16 +240,19 @@ export default function Results({ data, tariffs }: ResultsProps) {
         </h3>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Daily Cost</p>
+            <p className="text-sm text-green-600 dark:text-green-300">Daily Operating Cost</p>
             <p className="text-xl font-bold">{formatCurrency(solarCosts.daily)}</p>
+            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
           </div>
           <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Monthly Cost</p>
+            <p className="text-sm text-green-600 dark:text-green-300">Monthly Operating Cost</p>
             <p className="text-xl font-bold">{formatCurrency(solarCosts.monthly)}</p>
+            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
           </div>
           <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Yearly Cost</p>
+            <p className="text-sm text-green-600 dark:text-green-300">Yearly Operating Cost</p>
             <p className="text-xl font-bold">{formatCurrency(solarCosts.yearly)}</p>
+            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
           </div>
         </div>
         
@@ -255,13 +260,13 @@ export default function Results({ data, tariffs }: ResultsProps) {
           <p className="text-green-700 dark:text-green-300">
             Initial Solar System Cost: {formatCurrency(solarCosts.systemCost)}
           </p>
-          <p className="mt-2 text-sm text-green-600 dark:text-green-400">
-            • 25-year system lifespan<br />
-            • Minimal maintenance costs<br />
-            • No fuel costs<br />
-            • Environmental benefits<br />
-            • Return on investment in {solarCosts.paybackPeriod.toFixed(1)} years
-          </p>
+          <div className="mt-2 text-sm space-y-1">
+            <p>Annual Cost Breakdown:</p>
+            <p>• Maintenance: {formatCurrency(solarCosts.systemCost * 0.01)} (1% of system cost)</p>
+            <p>• Battery Fund: {formatCurrency((solarCosts.systemCost * 0.3) / 7)} (30% every 7 years)</p>
+            <p>• No fuel costs</p>
+            <p>• Return on investment in {solarCosts.paybackPeriod.toFixed(1)} years</p>
+          </div>
         </div>
       </div>
 

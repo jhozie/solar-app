@@ -1,6 +1,6 @@
 type PowerBandSelectorProps = {
-  selected: 'A' | 'B' | 'C' | 'D' | null;
-  onChange: (band: 'A' | 'B' | 'C' | 'D') => void;
+  selected: 'A' | 'B' | 'C' | 'D' | 'E' | null;
+  onChange: (band: 'A' | 'B' | 'C' | 'D' | 'E' | null) => void;
   tariffs: Record<string, { minHours: number; maxHours: number; tariff: number }>;
 };
 
@@ -24,6 +24,11 @@ const BAND_DESCRIPTIONS = {
     hours: '8-12',
     description: 'Basic service with 8-12 hours daily power supply',
     examples: 'Rural areas and developing regions'
+  },
+  'E': {
+    hours: '4-8',
+    description: 'Basic service with 4-8 hours daily power supply',
+    examples: 'Remote areas and developing regions'
   }
 };
 

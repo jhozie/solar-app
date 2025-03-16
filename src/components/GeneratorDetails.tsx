@@ -64,7 +64,7 @@ export default function GeneratorDetails({ kva, dieselPrice, maintenanceCost, on
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Diesel Price (₦/Liter)
+            Diesel/Petrol Price (₦/Liter)
           </label>
           <input
             type="number"

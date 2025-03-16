@@ -8,7 +8,7 @@ export default function Home() {
           Solar Savings Calculator
         </h1>
         <p className="text-center mb-12 text-gray-600 dark:text-gray-300">
-          Calculate your potential savings by switching from diesel to solar power
+          Calculate your potential savings by switching from diesel/petrol to solar power
         </p>
         <Calculator />
       </main>
