@@ -248,11 +248,22 @@ export default function Results({ data, tariffs }: ResultsProps) {
 
       <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-xl">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-          Total Annual Savings with Solar
+          Total Annual Savings vs Generator
         </h3>
-        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
-          {formatCurrency((phcnCosts.yearly + generatorCosts.yearly) - solarCosts.yearlySavings)}
-        </p>
+        <div className="space-y-2">
+          <div className="flex justify-between text-lg">
+            <span>Annual Generator Cost:</span>
+            <span>{formatCurrency(generatorCosts.yearly)}</span>
+          </div>
+          <div className="flex justify-between text-lg">
+            <span>Annual Solar Cost:</span>
+            <span>₦0</span>
+          </div>
+          <div className="flex justify-between text-2xl font-bold text-green-600 dark:text-green-400 pt-2 border-t">
+            <span>Annual Savings:</span>
+            <span>{formatCurrency(generatorCosts.yearly)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

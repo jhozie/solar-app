@@ -84,15 +84,13 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
       systemCost,
       solarPackage,
       paybackPeriod,
-      dailyDieselLitres: litresPerHour * avgGeneratorHours,
-      yearlyDieselCost: dailyDieselCost * 365,
       totalCurrentCost: phcnYearly + genYearly,
-      annualSavings: genYearly // Savings from not using generator
+      annualSavings: genYearly  // Only generator costs are saved
     };
   };
 
   const costs = calculateCosts();
-  const totalLifetimeSavings = (costs.annualSavings * 25) - costs.systemCost;
+  const totalLifetimeSavings = (costs.genYearly * 25) - costs.systemCost;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -114,19 +112,19 @@ export default function SummaryModal({ isOpen, onClose, data, tariffs }: Summary
           <div className="space-y-6">
             {/* Current Costs */}
             <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Current Annual Costs</h3>
+              <h3 className="text-lg font-semibold mb-3">Current Generator Costs</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>PHCN:</span>
-                  <span className="font-medium">{formatCurrency(costs.phcnYearly)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Generator:</span>
+                  <span>Annual Generator Cost:</span>
                   <span className="font-medium">{formatCurrency(costs.genYearly)}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                  <span>Total Current Cost:</span>
-                  <span>{formatCurrency(costs.totalCurrentCost)}</span>
+                <div className="flex justify-between">
+                  <span>Annual Solar Cost:</span>
+                  <span className="font-medium">₦0</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold text-green-600 pt-2 border-t">
+                  <span>Annual Savings vs Generator:</span>
+                  <span>{formatCurrency(costs.genYearly)}</span>
                 </div>
               </div>
             </div>
