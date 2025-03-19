@@ -75,55 +75,43 @@ export default function Results({ data, tariffs }: ResultsProps) {
     };
   };
 
-  // Solar System Cost Calculation (to replace generator usage)
+  // Solar System Cost Calculation
   const calculateSolarCost = () => {
-    const avgGeneratorHours = data.generatorHours.reduce((sum, h) => sum + h, 0) / 7;
-    const dailyKwh = (data.avgDailyConsumption * avgGeneratorHours) / 24;
-    
     // Size solar system based on generator KVA
     let solarPackage: SolarPackageType = 'MEDIUM';
     if (data.generatorKVA <= 4) {
-      solarPackage = 'SMALL';     // 3kW for 3-4 KVA generators
+      solarPackage = 'SMALL';
     } else if (data.generatorKVA >= 8) {
-      solarPackage = 'LARGE';     // 10kW for 8-10 KVA generators
+      solarPackage = 'LARGE';
     }
 
     const SOLAR_PACKAGES = {
       'SMALL': {
-        capacity: 3,              // 3kW system
-        cost: 2_000_000,         // ₦2M initial cost
+        capacity: 3,
+        cost: 2_000_000,
         description: 'Suitable for 3-4 KVA generators'
       },
       'MEDIUM': {
-        capacity: 5,              // 5kW system
-        cost: 2_750_000,         // ₦2.75M initial cost
+        capacity: 5,
+        cost: 2_750_000,
         description: 'Suitable for 5-7 KVA generators'
       },
       'LARGE': {
-        capacity: 10,             // 10kW system
-        cost: 5_700_000,         // ₦5.7M initial cost
+        capacity: 10,
+        cost: 5_700_000,
         description: 'Suitable for 8-10 KVA generators'
       }
     };
 
     const systemCost = SOLAR_PACKAGES[solarPackage].cost;
-    const yearlyMaintenance = systemCost * 0.01;
-    const batteryReplacementYearly = (systemCost * 0.3) / 7;
-    const solarYearly = yearlyMaintenance + batteryReplacementYearly;
-
-    // Calculate savings compared to generator only
     const generatorCosts = calculateGeneratorCost();
-    const annualSavings = generatorCosts.yearly - solarYearly;
-    const paybackPeriod = systemCost / annualSavings;
+    const paybackPeriod = systemCost / generatorCosts.yearly;
 
     return {
-      daily: solarYearly / 365,
-      monthly: solarYearly / 12,
-      yearly: solarYearly,
-      systemCost: systemCost,
-      kwhPerDay: dailyKwh,
-      paybackPeriod: paybackPeriod,
-      package: SOLAR_PACKAGES[solarPackage]
+      systemCost,
+      paybackPeriod,
+      package: SOLAR_PACKAGES[solarPackage],
+      yearlySavings: generatorCosts.yearly // What you save by not using generator
     };
   };
 
@@ -238,34 +226,22 @@ export default function Results({ data, tariffs }: ResultsProps) {
         <h3 className="text-lg font-semibold text-green-800 dark:text-green-400 mb-4">
           Solar Solution
         </h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Daily Operating Cost</p>
-            <p className="text-xl font-bold">{formatCurrency(solarCosts.daily)}</p>
-            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
-          </div>
-          <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Monthly Operating Cost</p>
-            <p className="text-xl font-bold">{formatCurrency(solarCosts.monthly)}</p>
-            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
-          </div>
-          <div>
-            <p className="text-sm text-green-600 dark:text-green-300">Yearly Operating Cost</p>
-            <p className="text-xl font-bold">{formatCurrency(solarCosts.yearly)}</p>
-            <p className="text-xs text-green-500">Maintenance + Battery Fund</p>
-          </div>
-        </div>
         
-        <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
-          <p className="text-green-700 dark:text-green-300">
-            Initial Solar System Cost: {formatCurrency(solarCosts.systemCost)}
+        <div className="p-4 bg-white dark:bg-gray-800 rounded-lg">
+          <p className="text-green-700 dark:text-green-300 text-xl font-bold mb-4">
+            Initial Investment: {formatCurrency(solarCosts.systemCost)}
           </p>
-          <div className="mt-2 text-sm space-y-1">
-            <p>Annual Cost Breakdown:</p>
-            <p>• Maintenance: {formatCurrency(solarCosts.systemCost * 0.01)} (1% of system cost)</p>
-            <p>• Battery Fund: {formatCurrency((solarCosts.systemCost * 0.3) / 7)} (30% every 7 years)</p>
-            <p>• No fuel costs</p>
-            <p>• Return on investment in {solarCosts.paybackPeriod.toFixed(1)} years</p>
+          <div className="mt-2 text-sm space-y-2">
+            <p className="font-medium">System Details:</p>
+            <p>• {solarCosts.package.capacity}kW Solar System</p>
+            <p>• {solarCosts.package.description}</p>
+            <p>• Zero operating costs</p>
+            <p className="text-green-600 font-medium mt-4">
+              Annual Savings: {formatCurrency(solarCosts.yearlySavings)}
+            </p>
+            <p className="font-medium">
+              Return on investment in {solarCosts.paybackPeriod.toFixed(1)} years
+            </p>
           </div>
         </div>
       </div>
@@ -275,7 +251,7 @@ export default function Results({ data, tariffs }: ResultsProps) {
           Total Annual Savings with Solar
         </h3>
         <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">
-          {formatCurrency((phcnCosts.yearly + generatorCosts.yearly) - solarCosts.yearly)}
+          {formatCurrency((phcnCosts.yearly + generatorCosts.yearly) - solarCosts.yearlySavings)}
         </p>
       </div>
     </div>
