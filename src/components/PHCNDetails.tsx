@@ -42,7 +42,7 @@ export default function PHCNDetails({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-          Power Supply Hours
+          PHCN & Generator Usage
         </h2>
         <div className="px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
           <span className="text-green-800 dark:text-green-300 font-medium">

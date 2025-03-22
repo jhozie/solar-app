@@ -92,6 +92,20 @@ export default function Calculator() {
     });
   };
 
+  const handleStartOver = () => {
+    setCurrentStep(0);
+    setData({
+      powerBand: null,
+      generatorKVA: 3,
+      phcnHoursMin: 6,
+      phcnHoursMax: 10,
+      dieselPricePerLiter: 1200,
+      maintenanceCostYearly: 100000,
+      avgDailyConsumption: 20,
+      generatorHours: Array(7).fill(4),
+    });
+  };
+
   const steps = [
     {
       title: 'Power Band',
@@ -117,8 +131,8 @@ export default function Calculator() {
       )
     },
     {
-      title: 'PHCN Usage',
-      description: 'Enter power supply hours',
+      title: 'Power Usage',
+      description: 'Enter PHCN and generator hours',
       component: (
         <PHCNDetails 
           hoursMin={data.phcnHoursMin}
@@ -134,7 +148,11 @@ export default function Calculator() {
       title: 'Results',
       description: 'View cost comparison',
       component: (
-        <Results data={data} tariffs={BAND_INFO} />
+        <Results 
+          data={data} 
+          tariffs={BAND_INFO}
+          onStartOver={handleStartOver}
+        />
       )
     }
   ];
