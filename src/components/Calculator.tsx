@@ -6,6 +6,7 @@ import PowerBandSelector from './PowerBandSelector';
 import GeneratorDetails from './GeneratorDetails';
 import PHCNDetails from './PHCNDetails';
 import Results from './Results';
+import { trackStepView } from '../utils/analytics';
 
 // Updated PHCN band information with accurate 2024 tariffs
 const BAND_INFO = {
@@ -77,6 +78,17 @@ export default function Calculator() {
       }));
     }
   }, [data.powerBand]);
+
+  // Track step changes
+  useEffect(() => {
+    trackStepView({
+      step: currentStep,
+      stepName: steps[currentStep].title,
+      powerBand: data.powerBand || undefined,
+      generatorKVA: data.generatorKVA,
+      completed: currentStep === steps.length - 1
+    });
+  }, [currentStep, data.powerBand, data.generatorKVA]);
 
   const updateData = (updates: Partial<CalculatorData>) => {
     setData(prev => {
