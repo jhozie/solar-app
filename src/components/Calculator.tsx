@@ -205,17 +205,19 @@ export default function Calculator({ onStepChange }: CalculatorProps) {
   };
 
   return (
-    <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-3xl shadow-xl p-6 md:p-8 ring-1 ring-black/5 dark:ring-white/10">
-      <div className="max-w-4xl mx-auto">
-        <Stepper
-          steps={steps}
-          currentStep={currentStep}
-          onNext={() => handleStepChange(Math.min(currentStep + 1, steps.length - 1))}
-          onPrev={() => handleStepChange(Math.max(currentStep - 1, 0))}
-          canNext={canProceedToNext()}
-          data={data}
-          tariffs={BAND_INFO}
-        />
+    <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-3xl shadow-xl ring-1 ring-black/5 dark:ring-white/10">
+      <div className="max-h-[800px] overflow-y-auto custom-scrollbar">
+        <div className="p-6 md:p-8">
+          <Stepper
+            steps={steps}
+            currentStep={currentStep}
+            onNext={() => handleStepChange(Math.min(currentStep + 1, steps.length - 1))}
+            onPrev={() => handleStepChange(Math.max(currentStep - 1, 0))}
+            canNext={canProceedToNext()}
+            data={data}
+            tariffs={BAND_INFO}
+          />
+        </div>
       </div>
     </div>
   );
