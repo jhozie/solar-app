@@ -25,4 +25,4 @@ class AnalyticsStore {
   }
 }
 
-export const analyticsStore = new AnalyticsStore();
+export const analyticsStore = new AnalyticsStore(); 

@@ -129,6 +129,30 @@ export default function Results({ data, tariffs, onStartOver }: ResultsProps & {
     }).format(amount);
   };
 
+  // Create WhatsApp message with cost details
+  const createWhatsAppMessage = () => {
+    const powerHours = getPowerDistribution();
+    const phcnCosts = calculatePHCNCost();
+    const generatorCosts = calculateGeneratorCost();
+    const solarCosts = calculateSolarCost();
+
+    return encodeURIComponent(
+      `Hello! I would like to get a quote for a solar system based on my calculator results:\n\n` +
+      `My Current Setup:\n` +
+      `- PHCN Usage: ${powerHours.phcn.toFixed(1)} hrs/day\n` +
+      `- Generator Usage: ${powerHours.generator.toFixed(1)} hrs/day\n` +
+      `- Generator Size: ${data.generatorKVA}KVA\n\n` +
+      `My Current Monthly Costs:\n` +
+      `- PHCN: ${formatCurrency(phcnCosts.monthly)}\n` +
+      `- Generator: ${formatCurrency(generatorCosts.monthly)}\n\n` +
+      `Recommended System:\n` +
+      `- ${solarCosts.package.capacity}kW Solar System\n` +
+      `- Estimated Investment: ${formatCurrency(solarCosts.systemCost)}\n` +
+      `- Potential Annual Savings: ${formatCurrency(solarCosts.yearlySavings)}\n\n` +
+      `Please provide me with a detailed quote for this solar system. Thank you!`
+    );
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -266,10 +290,10 @@ export default function Results({ data, tariffs, onStartOver }: ResultsProps & {
         </div>
       </div>
 
-      {/* Add Contact and Start Over buttons */}
+      {/* Update the WhatsApp button */}
       <div className="grid gap-4 md:grid-cols-2 mt-8">
         <a
-          href="https://wa.me/2348033161606"
+          href={`https://wa.me/2348033161606?text=${createWhatsAppMessage()}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
