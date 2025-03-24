@@ -4,19 +4,27 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground: #ededed;
   }
 }
 
+@theme inline {
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, sans-serif;
+}
+
+/* Add support for dark mode in the gradient background */
+@media (prefers-color-scheme: dark) {
+  body[style] {
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%) !important;
+    background-attachment: fixed !important;
+  }
 }

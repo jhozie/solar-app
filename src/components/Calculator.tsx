@@ -189,16 +189,18 @@ export default function Calculator() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-      <Stepper
-        steps={steps}
-        currentStep={currentStep}
-        onNext={() => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1))}
-        onPrev={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
-        canNext={canProceedToNext()}
-        data={data}
-        tariffs={BAND_INFO}
-      />
+    <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-3xl shadow-xl p-6 md:p-8 ring-1 ring-black/5 dark:ring-white/10">
+      <div className="max-w-4xl mx-auto">
+        <Stepper
+          steps={steps}
+          currentStep={currentStep}
+          onNext={() => setCurrentStep(prev => Math.min(prev + 1, steps.length - 1))}
+          onPrev={() => setCurrentStep(prev => Math.max(prev - 1, 0))}
+          canNext={canProceedToNext()}
+          data={data}
+          tariffs={BAND_INFO}
+        />
+      </div>
     </div>
   );
 } 
