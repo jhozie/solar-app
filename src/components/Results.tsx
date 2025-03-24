@@ -1,4 +1,5 @@
 import { CalculatorData } from './Calculator';
+import { useEffect } from 'react';
 
 type ResultsProps = {
   data: CalculatorData;
@@ -24,7 +25,10 @@ const GENERATOR_FUEL_CONSUMPTION: Record<number, number> = {
   10: 4.0    // 10kVA = 4.0L/hr at full load
 };
 
-export default function Results({ data, tariffs, onStartOver }: ResultsProps & { onStartOver: () => void }) {
+export default function Results({ data, tariffs, onStartOver, onMessageReady }: ResultsProps & { 
+  onStartOver: () => void;
+  onMessageReady?: (message: string) => void;
+}) {
   // Calculate power distribution hours
   const getPowerDistribution = () => {
     if (!data.powerBand) return { phcn: 0, generator: 0, solar: 0 };
@@ -152,6 +156,12 @@ export default function Results({ data, tariffs, onStartOver }: ResultsProps & {
       `Please provide me with a detailed quote for this solar system. Thank you!`
     );
   };
+
+  // Call this when component mounts
+  useEffect(() => {
+    const message = createWhatsAppMessage();
+    onMessageReady?.(message);
+  }, []);
 
   return (
     <div className="space-y-8">

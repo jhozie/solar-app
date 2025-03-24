@@ -59,6 +59,7 @@ type CalculatorProps = {
 
 export default function Calculator({ onStepChange }: CalculatorProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [whatsappMessage, setWhatsappMessage] = useState('');
   const [data, setData] = useState<CalculatorData>({
     powerBand: null,
     generatorKVA: 3,
@@ -122,6 +123,16 @@ export default function Calculator({ onStepChange }: CalculatorProps) {
     });
   };
 
+  const handleStepChange = (newStep: number) => {
+    setCurrentStep(newStep);
+    onStepChange?.(newStep, steps.length, whatsappMessage);
+  };
+
+  const handleMessageReady = (message: string) => {
+    setWhatsappMessage(message);
+    onStepChange?.(currentStep, steps.length, message);
+  };
+
   const steps = [
     {
       title: 'Power Band',
@@ -168,6 +179,7 @@ export default function Calculator({ onStepChange }: CalculatorProps) {
           data={data} 
           tariffs={BAND_INFO}
           onStartOver={handleStartOver}
+          onMessageReady={handleMessageReady}
         />
       )
     }
@@ -190,41 +202,6 @@ export default function Calculator({ onStepChange }: CalculatorProps) {
       default:
         return true;
     }
-  };
-
-  const handleStepChange = (newStep: number) => {
-    setCurrentStep(newStep);
-    // If we're moving to the results step, pass the WhatsApp message
-    if (newStep === steps.length - 1) {
-      const message = createWhatsAppMessage(); // You'll need to implement this function
-      onStepChange?.(newStep, steps.length, message);
-    } else {
-      onStepChange?.(newStep, steps.length);
-    }
-  };
-
-  // Add the createWhatsAppMessage function (copy from Results component)
-  const createWhatsAppMessage = () => {
-    const powerHours = getPowerDistribution();
-    const phcnCosts = calculatePHCNCost();
-    const generatorCosts = calculateGeneratorCost();
-    const solarCosts = calculateSolarCost();
-
-    return encodeURIComponent(
-      `Hello! I would like to get a quote for a solar system based on my calculator results:\n\n` +
-      `My Current Setup:\n` +
-      `- PHCN Usage: ${powerHours.phcn.toFixed(1)} hrs/day\n` +
-      `- Generator Usage: ${powerHours.generator.toFixed(1)} hrs/day\n` +
-      `- Generator Size: ${data.generatorKVA}KVA\n\n` +
-      `My Current Monthly Costs:\n` +
-      `- PHCN: ${formatCurrency(phcnCosts.monthly)}\n` +
-      `- Generator: ${formatCurrency(generatorCosts.monthly)}\n\n` +
-      `Recommended System:\n` +
-      `- ${solarCosts.package.capacity}kW Solar System\n` +
-      `- Estimated Investment: ${formatCurrency(solarCosts.systemCost)}\n` +
-      `- Potential Annual Savings: ${formatCurrency(solarCosts.yearlySavings)}\n\n` +
-      `Please provide me with a detailed quote for this solar system. Thank you!`
-    );
   };
 
   return (
