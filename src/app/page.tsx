@@ -4,9 +4,13 @@ import Calculator from '@/components/Calculator';
 
 export default function Home() {
   const [showFloatingButton, setShowFloatingButton] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState('');
 
-  const handleStepChange = (step: number, totalSteps: number) => {
+  const handleStepChange = (step: number, totalSteps: number, message?: string) => {
     setShowFloatingButton(step === totalSteps - 1);
+    if (message) {
+      setWhatsappMessage(message);
+    }
   };
 
   return (
@@ -17,7 +21,7 @@ export default function Home() {
       {showFloatingButton && (
         <div className="fixed bottom-8 right-8 z-50 animate-bounce">
           <a
-            href="https://wa.me/2348033161606"
+            href={`https://wa.me/2348033161606?text=${whatsappMessage}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 px-6 py-4 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 transition-all hover:shadow-xl group"
